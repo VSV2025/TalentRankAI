@@ -4,9 +4,10 @@ import Header from './components/shared/Header'
 import HeroPage from './components/shared/HeroPage'
 import CandidateIntake from './components/candidate/CandidateIntake'
 import RecruiterDashboard from './components/recruiter/RecruiterDashboard'
+import HackathonPage from './pages/HackathonPage'
 import AnimatedBackground from './components/shared/AnimatedBackground'
 
-const VIEW_ORDER = ['home', 'candidate', 'recruiter']
+const VIEW_ORDER = ['home', 'candidate', 'recruiter', 'hackathon']
 
 const SPRING = { type: 'spring', stiffness: 340, damping: 26, mass: 0.9 }
 
@@ -82,6 +83,7 @@ export default function App() {
           {view === 'home'      && <HeroPage      onViewChange={handleViewChange} />}
           {view === 'candidate' && <CandidateIntake />}
           {view === 'recruiter' && <RecruiterDashboard />}
+          {view === 'hackathon' && <HackathonPage />}
         </motion.main>
       </AnimatePresence>
     </div>

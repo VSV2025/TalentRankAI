@@ -31,6 +31,7 @@ export default function Header({ view, onViewChange }) {
             { key: 'home', label: 'Home' },
             { key: 'candidate', label: 'Apply' },
             { key: 'recruiter', label: 'Recruiter' },
+            { key: 'hackathon', label: 'Hackathon' },
           ].map(({ key, label }) => (
             <motion.button
               key={key}
