@@ -3,12 +3,13 @@ import { motion } from 'framer-motion'
 const EXPO = [0.16, 1, 0.3, 1]
 
 const AXES = [
-  { key: 'skillsMatch',       label: 'Skills',    color: '#7C5CFF' },
-  { key: 'semanticRelevance', label: 'Semantic',  color: '#3FCF8E' },
-  { key: 'behavioralSignal',  label: 'Behavior',  color: '#A78BFA' },
-  { key: 'careerTrajectory',  label: 'Career',    color: '#F5A623' },
-  { key: 'graphFit',          label: 'Graph Fit', color: '#38BDF8' },
-  { key: 'skillBreadth',      label: 'Breadth',   color: '#EC4899' },
+  { key: 'skillsMatch',        label: 'Skills',    color: '#7C5CFF' },
+  { key: 'semanticRelevance',  label: 'Semantic',  color: '#3FCF8E' },
+  { key: 'behavioralSignal',   label: 'Behavior',  color: '#A78BFA' },
+  { key: 'careerTrajectory',   label: 'Career',    color: '#F5A623' },
+  { key: 'productionEvidence', label: 'Prod.',     color: '#F45B5B' },
+  { key: 'graphFit',           label: 'Graph Fit', color: '#38BDF8' },
+  { key: 'skillBreadth',       label: 'Breadth',   color: '#EC4899' },
 ]
 
 function polarToXY(angleDeg, r, cx, cy) {
@@ -24,12 +25,13 @@ export default function ScoreRadar({ scores, graphFitScore, skillBreadthScore, s
   const angleStep = 360 / n
 
   const values = {
-    skillsMatch:       (scores?.skillsMatch       ?? 50) / 100,
-    semanticRelevance: (scores?.semanticRelevance ?? 50) / 100,
-    behavioralSignal:  (scores?.behavioralSignal  ?? 50) / 100,
-    careerTrajectory:  (scores?.careerTrajectory  ?? 50) / 100,
-    graphFit:          (graphFitScore ?? 50) / 100,
-    skillBreadth:      (skillBreadthScore ?? 50) / 100,
+    skillsMatch:        (scores?.skillsMatch        ?? 50) / 100,
+    semanticRelevance:  (scores?.semanticRelevance  ?? 50) / 100,
+    behavioralSignal:   (scores?.behavioralSignal   ?? 50) / 100,
+    careerTrajectory:   (scores?.careerTrajectory   ?? 50) / 100,
+    productionEvidence: (scores?.productionEvidence ?? 0)  / 100,
+    graphFit:           (graphFitScore   ?? 50) / 100,
+    skillBreadth:       (skillBreadthScore ?? 50) / 100,
   }
 
   const dataPoints = AXES.map((ax, i) => {

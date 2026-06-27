@@ -115,44 +115,6 @@ function RealChecks({ checks, onDone }) {
   )
 }
 
-// Demo checks (no API) — uses preset timings
-const DEMO_CHECKS = [
-  { id: 'email_format',    label: 'Email format valid',                    delay: 700,  result: 'pass',    detail: 'Standard RFC 5321 format confirmed.' },
-  { id: 'email_confirm',   label: 'Confirmation email sent',               delay: 1600, result: 'pending', detail: 'Verification link sent — awaiting confirmation from your inbox.' },
-  { id: 'resume_readable', label: 'Resume is a readable file',             delay: 2700, result: 'pass',    detail: 'File parsed successfully — text, structure, and metadata extracted.' },
-  { id: 'consistency',     label: 'Consistency check · authenticity score', delay: 3900, result: 'review', detail: 'Email on resume (a.lovelace@historical.io) differs from form submission.', badge: 'Review needed — email on resume differs' },
-]
-
-function DemoChecks({ onDone }) {
-  const [revealed, setRevealed] = useState([])
-  const [loadingId, setLoadingId] = useState(null)
-
-  useEffect(() => {
-    const timers = []
-    DEMO_CHECKS.forEach((check, i) => {
-      timers.push(setTimeout(() => setLoadingId(check.id), check.delay - 600))
-      timers.push(setTimeout(() => {
-        setRevealed(p => [...p, check.id])
-        setLoadingId(null)
-        if (i === DEMO_CHECKS.length - 1) setTimeout(onDone, 600)
-      }, check.delay))
-    })
-    return () => timers.forEach(clearTimeout)
-  }, [onDone])
-
-  return (
-    <div className="space-y-2.5">
-      {DEMO_CHECKS.map(check => (
-        <CheckItem
-          key={check.id}
-          check={check}
-          revealed={revealed.includes(check.id)}
-          isLoading={loadingId === check.id}
-        />
-      ))}
-    </div>
-  )
-}
 
 export default function Step3Verification({ data, verificationResult }) {
   const [done, setDone] = useState(false)
@@ -160,15 +122,14 @@ export default function Step3Verification({ data, verificationResult }) {
   const overallStatus = verificationResult?.overall_status ?? 'review'
   const checks = verificationResult?.checks ?? []
 
-  // Summary stats
-  const passCount = checks.filter(c => c.result === 'pass').length
-  const reviewCount = checks.filter(c => c.result === 'review').length
-  const pendingCount = checks.filter(c => c.result === 'pending').length
-  const totalCount = checks.length || DEMO_CHECKS.length
+  // Detect hard submission failure (duplicate / server error before candidate was created)
+  const isSubmitError = !verificationResult?.candidate_id &&
+    checks.some(c => c.id === 'submit_error')
+  const submitErrorMsg = checks.find(c => c.id === 'submit_error')?.detail ?? 'Submission failed.'
 
-  const demoPassCount = 2
-  const demoReviewCount = 1
-  const demoPendingCount = 1
+  const passCount    = checks.filter(c => c.result === 'pass').length
+  const reviewCount  = checks.filter(c => c.result === 'review').length
+  const pendingCount = checks.filter(c => c.result === 'pending').length
 
   return (
     <div>
@@ -178,14 +139,33 @@ export default function Step3Verification({ data, verificationResult }) {
         Running authenticity checks — these are informational signals for recruiters, not hard pass/fail gates.
       </p>
 
-      {hasRealResult ? (
+      {/* Hard submission error (duplicate email, server error, etc.) */}
+      {isSubmitError ? (
+        <motion.div
+          initial={{ opacity:0, scale:0.97 }} animate={{ opacity:1, scale:1 }}
+          transition={{ duration:0.35 }}
+          className="rounded-2xl border border-signal-red/25 bg-gradient-to-b from-signal-red/[0.06] to-transparent p-6 text-center"
+        >
+          <div className="w-14 h-14 rounded-full mx-auto border border-signal-red/30 bg-signal-red/10 flex items-center justify-center mb-4">
+            <svg className="w-6 h-6 text-signal-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h3 className="font-display font-bold text-xl text-offwhite mb-2">Submission not accepted</h3>
+          <p className="text-signal-red/80 text-sm max-w-xs mx-auto leading-relaxed">{submitErrorMsg}</p>
+          <p className="text-muted/40 text-xs mt-4">Please go back and try again with different details.</p>
+        </motion.div>
+      ) : hasRealResult ? (
         <RealChecks checks={checks} onDone={() => setDone(true)} />
       ) : (
-        <DemoChecks onDone={() => setDone(true)} />
+        <div className="flex items-center justify-center py-10 gap-3">
+          <div className="w-5 h-5 border-2 border-t-violet border-white/10 rounded-full animate-spin flex-shrink-0" />
+          <span className="text-muted/60 text-sm">Loading verification results…</span>
+        </div>
       )}
 
       <AnimatePresence>
-        {done && (
+        {done && !isSubmitError && (
           <motion.div
             initial={{ opacity:0, y:16, scale:0.97 }}
             animate={{ opacity:1, y:0, scale:1 }}
@@ -214,7 +194,7 @@ export default function Step3Verification({ data, verificationResult }) {
               </motion.div>
               <h3 className="font-display font-bold text-xl text-offwhite mb-2">Submission received</h3>
               <p className="text-muted text-sm mb-4 max-w-xs mx-auto leading-relaxed">
-                Application for <span className="text-offwhite font-medium">Senior ML Engineer — LLM Infrastructure</span> is queued for review.
+                Your application is queued for review.
               </p>
               {overallStatus !== 'verified' && (
                 <div className="inline-flex items-center gap-2 rounded-full border border-signal-amber/25 bg-signal-amber/10 px-4 py-1.5">
@@ -236,9 +216,9 @@ export default function Step3Verification({ data, verificationResult }) {
             {/* Score summary */}
             <div className="grid grid-cols-3 gap-2.5 mt-3">
               {[
-                { value: hasRealResult ? `${passCount}/${totalCount}` : `${demoPassCount}/4`, label: 'Checks passed', color: 'text-signal-green' },
-                { value: hasRealResult ? reviewCount : demoReviewCount,   label: 'Flagged',        color: 'text-signal-amber' },
-                { value: hasRealResult ? pendingCount : demoPendingCount, label: 'Pending',        color: 'text-violet' },
+                { value: `${passCount}/${checks.length}`, label: 'Checks passed', color: 'text-signal-green' },
+                { value: reviewCount,                     label: 'Flagged',        color: 'text-signal-amber' },
+                { value: pendingCount,                    label: 'Pending',        color: 'text-violet' },
               ].map((s, i) => (
                 <motion.div
                   key={i}

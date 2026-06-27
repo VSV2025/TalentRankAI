@@ -1,7 +1,13 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const ALLOWED = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+const ALLOWED_MIME = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'application/octet-stream', // some OSes report this for .docx
+])
+const ALLOWED_EXT = new Set(['.pdf', '.docx', '.doc'])
 const MAX_MB = 10
 
 function formatSize(bytes) {
@@ -16,7 +22,10 @@ export default function Step2Resume({ onNext, onBack, isSubmitting = false }) {
   const inputRef = useRef()
 
   const validate = (f) => {
-    if (!ALLOWED.includes(f.type)) return 'Only PDF or DOCX files are accepted.'
+    const ext = '.' + (f.name.split('.').pop() || '').toLowerCase()
+    const mimeOk = ALLOWED_MIME.has(f.type)
+    const extOk  = ALLOWED_EXT.has(ext)
+    if (!mimeOk && !extOk) return 'Only PDF or DOCX files are accepted.'
     if (f.size > MAX_MB * 1024 * 1024) return `File must be under ${MAX_MB} MB.`
     return ''
   }

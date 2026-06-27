@@ -11,13 +11,14 @@ export default {
         'ink-5':'#2A2A46',
         violet: { DEFAULT:'#7C5CFF', dim:'#5A3FCC', light:'#A78BFA', glow:'rgba(124,92,255,0.25)' },
         signal: { green:'#3FCF8E', amber:'#F5A623', red:'#F45B5B' },
-        offwhite: '#E8E8F0',
-        muted:    '#6B6B8A',
-        'muted-2':'#9090B0',
+        offwhite: '#F0F0F8',
+        muted:    '#AEAECE',
+        'muted-2':'#CCCCE4',
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'sans-serif'],
-        body:    ['"Inter"', 'sans-serif'],
+        body:    ['"Outfit"', 'sans-serif'],
+        sans:    ['"Outfit"', 'sans-serif'],
         mono:    ['"JetBrains Mono"', 'monospace'],
       },
       keyframes: {

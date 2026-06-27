@@ -4,6 +4,7 @@ import Header from './components/shared/Header'
 import HeroPage from './components/shared/HeroPage'
 import CandidateIntake from './components/candidate/CandidateIntake'
 import RecruiterDashboard from './components/recruiter/RecruiterDashboard'
+import RecruiterGate, { isRecruiterUnlocked, lockRecruiter } from './components/recruiter/RecruiterGate'
 import HackathonPage from './pages/HackathonPage'
 import AnimatedBackground from './components/shared/AnimatedBackground'
 
@@ -50,6 +51,7 @@ const variantsReduced = {
 
 export default function App() {
   const [view, setView] = useState('home')
+  const [recruiterUnlocked, setRecruiterUnlocked] = useState(false)
   const dirRef = useRef(0)
 
   const prefersReduced =
@@ -72,7 +74,7 @@ export default function App() {
 
       <AnimatePresence mode="wait" custom={dirRef.current}>
         <motion.main
-          key={view}
+          key={view === 'recruiter' ? `recruiter-${recruiterUnlocked}` : view}
           custom={dirRef.current}
           variants={prefersReduced ? variantsReduced : variants}
           initial="initial"
@@ -82,7 +84,12 @@ export default function App() {
         >
           {view === 'home'      && <HeroPage      onViewChange={handleViewChange} />}
           {view === 'candidate' && <CandidateIntake />}
-          {view === 'recruiter' && <RecruiterDashboard />}
+          {view === 'recruiter' && !recruiterUnlocked && (
+            <RecruiterGate onUnlock={() => setRecruiterUnlocked(true)} />
+          )}
+          {view === 'recruiter' && recruiterUnlocked && (
+            <RecruiterDashboard onLock={() => { lockRecruiter(); setRecruiterUnlocked(false) }} />
+          )}
           {view === 'hackathon' && <HackathonPage />}
         </motion.main>
       </AnimatePresence>

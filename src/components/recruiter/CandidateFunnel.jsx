@@ -26,7 +26,6 @@ const LAYER_META = {
   'L4b Reasoning LLM':  { icon: '🧠', color: '#3FCF8E', glow: 'rgba(63,207,142,0.35)' },
   'L6 Agent Debate':    { icon: '⚔️', color: '#F5A623', glow: 'rgba(245,166,35,0.28)' },
   'L7 Ranked':          { icon: '⚖️', color: '#EC4899', glow: 'rgba(236,72,153,0.28)' },
-  // legacy labels
   'Fast Retrieval':     { icon: '🔍', color: '#6EA8FE', glow: 'rgba(110,168,254,0.28)' },
   'Enrichment':         { icon: '🕸️', color: '#38BDF8', glow: 'rgba(56,189,248,0.28)' },
   'Deep Reasoning':     { icon: '🧠', color: '#3FCF8E', glow: 'rgba(63,207,142,0.35)' },
@@ -37,27 +36,27 @@ function getLayerMeta(label) {
   return LAYER_META[label] || { icon: '▸', color: '#7C5CFF', glow: 'rgba(124,92,255,0.3)' }
 }
 
-function FunnelRow({ stage, idx, active, maxCount, total }) {
+function FunnelRow({ stage, idx, active, maxCount }) {
   const meta = getLayerMeta(stage.label)
   const pct = Math.max(4, Math.round((stage.count / maxCount) * 100))
   const count = useCountUp(stage.count, active, 900 + idx * 80)
 
   return (
     <div className="flex items-center gap-3 group">
-      {/* Layer id */}
-      <div className="w-8 flex-shrink-0 text-center">
-        <span className="text-base">{meta.icon}</span>
+      {/* Layer icon */}
+      <div className="w-9 flex-shrink-0 text-center">
+        <span className="text-xl">{meta.icon}</span>
       </div>
 
       {/* Label */}
-      <div className="w-36 text-right flex-shrink-0">
-        <span className={`text-xs font-medium transition-colors duration-300 ${active ? 'text-offwhite/80' : 'text-muted/25'}`}>
+      <div className="w-40 text-right flex-shrink-0">
+        <span className={`text-sm font-medium transition-colors duration-300 ${active ? 'text-offwhite/90' : 'text-muted/25'}`}>
           {stage.label}
         </span>
       </div>
 
       {/* Bar */}
-      <div className="flex-1 relative h-8 bg-ink-3/60 rounded-xl overflow-hidden border border-white/[0.04]">
+      <div className="flex-1 relative h-9 bg-ink-3/60 rounded-xl overflow-hidden border border-white/[0.04]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: active ? `${pct}%` : 0 }}
@@ -67,7 +66,7 @@ function FunnelRow({ stage, idx, active, maxCount, total }) {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
           {active && (
-            <span className="font-mono-data font-bold text-xs text-white relative z-10 drop-shadow-md whitespace-nowrap">
+            <span className="font-mono-data font-bold text-sm text-white relative z-10 drop-shadow-md whitespace-nowrap">
               {count.toLocaleString()}
             </span>
           )}
@@ -75,8 +74,8 @@ function FunnelRow({ stage, idx, active, maxCount, total }) {
       </div>
 
       {/* Description */}
-      <div className="w-48 flex-shrink-0 hidden lg:block">
-        <span className={`text-xs transition-colors duration-300 ${active ? 'text-muted/55' : 'text-muted/18'}`}>
+      <div className="w-52 flex-shrink-0 hidden lg:block">
+        <span className={`text-sm transition-colors duration-300 ${active ? 'text-muted/65' : 'text-muted/18'}`}>
           {stage.description}
         </span>
       </div>
@@ -99,7 +98,6 @@ export default function CandidateFunnel({ funnelData }) {
   }, [inView, stages])
 
   const maxCount = stages[0]?.count ?? 10000
-  const totalIn  = maxCount
   const totalOut = stages[stages.length - 1]?.count ?? 10
 
   return (
@@ -115,20 +113,20 @@ export default function CandidateFunnel({ funnelData }) {
       <div className="flex items-center justify-between mb-5 relative z-10">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs text-muted/55 uppercase tracking-widest font-medium">7-layer pipeline</span>
+            <span className="text-sm text-muted/65 uppercase tracking-widest font-medium">7-layer pipeline</span>
           </div>
-          <h3 className="font-display font-bold text-offwhite text-base">
-            {totalIn.toLocaleString()} → {totalOut.toLocaleString()} candidates
+          <h3 className="font-display font-bold text-offwhite text-lg">
+            {maxCount.toLocaleString()} → {totalOut.toLocaleString()} candidates
           </h3>
         </div>
-        <div className="flex items-center gap-1.5 bg-signal-green/[0.08] border border-signal-green/20 rounded-full px-3 py-1.5">
+        <div className="flex items-center gap-2 bg-signal-green/[0.08] border border-signal-green/20 rounded-full px-3.5 py-2">
           <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 2, repeat: Infinity }}
-            className="w-1.5 h-1.5 rounded-full bg-signal-green" />
-          <span className="text-signal-green text-xs font-semibold">Fairness checked</span>
+            className="w-2 h-2 rounded-full bg-signal-green" />
+          <span className="text-signal-green text-sm font-semibold">Fairness checked</span>
         </div>
       </div>
 
-      <div className="space-y-2.5 relative z-10">
+      <div className="space-y-3 relative z-10">
         {stages.map((stage, i) => (
           <FunnelRow
             key={i}
@@ -136,13 +134,12 @@ export default function CandidateFunnel({ funnelData }) {
             idx={i}
             active={stagesActive.includes(i)}
             maxCount={maxCount}
-            total={stages.length}
           />
         ))}
       </div>
 
       {/* Advance rates */}
-      <div className="flex flex-col gap-0.5 ml-[12.5rem] mt-1 relative z-10">
+      <div className="flex flex-col gap-0.5 ml-[13.5rem] mt-1 relative z-10">
         {stages.slice(0, -1).map((stage, i) => {
           const next = stages[i + 1]
           if (!next || stage.count === next.count) return null
@@ -153,7 +150,7 @@ export default function CandidateFunnel({ funnelData }) {
               <motion.span
                 initial={{ opacity: 0 }} animate={{ opacity: stagesActive.includes(i + 1) ? 1 : 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-[10px] text-muted/35 font-mono-data"
+                className="text-xs text-muted/50 font-mono-data"
               >
                 {pct}% advance
               </motion.span>
@@ -162,10 +159,10 @@ export default function CandidateFunnel({ funnelData }) {
         })}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-xs relative z-10">
-        <span className="text-muted/50">Pool: <span className="text-violet font-mono-data font-semibold">{totalIn.toLocaleString()}</span></span>
-        <span className="text-muted/30 hidden md:block">{stages.length} layers</span>
-        <span className="text-muted/50">Ranked: <span className="text-signal-green font-mono-data font-semibold">{totalOut.toLocaleString()}</span></span>
+      <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-sm relative z-10">
+        <span className="text-muted/60">Pool: <span className="text-violet font-mono-data font-semibold">{maxCount.toLocaleString()}</span></span>
+        <span className="text-muted/45 hidden md:block">{stages.length} layers</span>
+        <span className="text-muted/60">Ranked: <span className="text-signal-green font-mono-data font-semibold">{totalOut.toLocaleString()}</span></span>
       </div>
     </motion.div>
   )

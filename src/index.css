@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -9,8 +9,11 @@
   html { color-scheme: dark; scroll-behavior: smooth; }
   body {
     background-color: #0B0B14;
-    color: #E8E8F0;
-    font-family: 'Inter', sans-serif;
+    color: #EDEDF5;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0; padding: 0; overflow-x: hidden;
@@ -20,6 +23,7 @@
 
 @layer utilities {
   .font-display   { font-family: 'Space Grotesk', sans-serif; }
+  .font-body      { font-family: 'Outfit', sans-serif; }
   .font-mono-data { font-family: 'JetBrains Mono', monospace; }
 
   /* ── Gradient text ── */
@@ -63,14 +67,14 @@
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg, rgba(124,92,255,0.4) 0%, rgba(63,207,142,0.15) 50%, rgba(124,92,255,0.1) 100%);
+    background: linear-gradient(135deg, rgba(124,92,255,0.50) 0%, rgba(63,207,142,0.18) 50%, rgba(124,92,255,0.14) 100%);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
     pointer-events: none;
   }
   .glass-gradient-border:hover::before {
-    background: linear-gradient(135deg, rgba(124,92,255,0.7) 0%, rgba(63,207,142,0.3) 50%, rgba(167,139,250,0.4) 100%);
+    background: linear-gradient(135deg, rgba(124,92,255,0.80) 0%, rgba(63,207,142,0.35) 50%, rgba(167,139,250,0.50) 100%);
   }
 
   /* ── Glows ── */
