@@ -5,14 +5,14 @@ export default function ScoreBar({ label, value, delay = 0 }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-xs text-muted/70">{label}</span>
-        <span className="text-xs font-mono-data font-semibold" style={{ color }}>{value}</span>
+        <span className="text-xs text-slate-300">{label}</span>
+        <span className="text-sm font-mono-data font-semibold" style={{ color }}>{value}</span>
       </div>
       <div className="h-1.5 bg-ink-4/80 rounded-full overflow-hidden">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
-          transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.4, delay, ease: [0.22, 1, 0.36, 1] }}
           className="h-full rounded-full"
           style={{ background: color, boxShadow: `0 0 8px ${color}66` }}
         />

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-const API = 'http://localhost:8000/api/hackathon'
+const API = `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/hackathon`
 
 // ─── Layer meta ────────────────────────────────────────────────────────────
 const LAYERS = [
@@ -9,7 +9,7 @@ const LAYERS = [
   { id: 'L2 Retrieval',       icon: '🔍', color: '#6EA8FE', label: 'L2  Retrieval',        desc: 'Keyword + YoE + title fast-score all candidates' },
   { id: 'L3 Graph Enrichment',icon: '🕸️', color: '#38BDF8', label: 'L3  Graph Enrichment', desc: 'O*NET cluster topology — graph_fit + skill_breadth' },
   { id: 'L4 Feature Scoring', icon: '⚡', color: '#A78BFA', label: 'L4  Feature Scoring',  desc: 'Skills × proficiency × duration, career, education' },
-  { id: 'L4b Behavioral',     icon: '📡', color: '#3FCF8E', label: 'L4b Behavioral',       desc: '23 Redrob platform signals — engagement multiplier' },
+  { id: 'L4b Behavioral Signals', icon: '📡', color: '#3FCF8E', label: 'L4b Behavioral',       desc: '23 Redrob platform signals — engagement multiplier' },
   { id: 'L6 Agent Debate',    icon: '⚔️', color: '#F5A623', label: 'L6  Debate',            desc: 'Advocate/skeptic rules + honeypot stuffer detection' },
   { id: 'L7 Ranked',          icon: '⚖️', color: '#EC4899', label: 'L7  Ranked',            desc: 'Composite sort + FA*IR fairness rerank → top 100' },
 ]
@@ -62,31 +62,31 @@ function JDCard() {
       <div className="space-y-2.5 mb-5">
         {JD_SPECS.map(({ label, value }) => (
           <div key={label}>
-            <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-0.5">{label}</p>
-            <p className="text-offwhite/90 text-xs font-medium leading-snug">{value}</p>
+            <p className="text-xs text-muted/55 uppercase tracking-widest mb-0.5">{label}</p>
+            <p className="text-offwhite text-sm font-medium leading-snug">{value}</p>
           </div>
         ))}
       </div>
 
       <div className="mb-4">
-        <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-2">Key Requirements</p>
+        <p className="text-xs text-muted/55 uppercase tracking-widest mb-2">Key Requirements</p>
         <ul className="space-y-1.5">
           {JD_REQUIREMENTS.map((r, i) => (
             <li key={i} className="flex items-start gap-1.5">
-              <span className="text-signal-green text-xs mt-0.5 flex-shrink-0">✓</span>
-              <span className="text-offwhite/70 text-xs leading-snug">{r}</span>
+              <span className="text-signal-green text-sm mt-0.5 flex-shrink-0">✓</span>
+              <span className="text-offwhite/85 text-sm leading-snug">{r}</span>
             </li>
           ))}
         </ul>
       </div>
 
       <div>
-        <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-2">Disqualifiers</p>
+        <p className="text-xs text-muted/55 uppercase tracking-widest mb-2">Disqualifiers</p>
         <ul className="space-y-1.5">
           {JD_DISQUALIFIERS.map((d, i) => (
             <li key={i} className="flex items-start gap-1.5">
-              <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">✗</span>
-              <span className="text-red-300/70 text-xs leading-snug">{d}</span>
+              <span className="text-red-400 text-sm mt-0.5 flex-shrink-0">✗</span>
+              <span className="text-red-300/85 text-sm leading-snug">{d}</span>
             </li>
           ))}
         </ul>
@@ -94,9 +94,59 @@ function JDCard() {
 
       <div className="mt-5 pt-4 border-t border-white/[0.06]">
         <div className="flex items-center gap-1.5 bg-violet/[0.08] border border-violet/20 rounded-full px-3 py-1.5 w-fit">
-          <span className="text-[10px] text-violet font-semibold uppercase tracking-widest">Hackathon Submission</span>
+          <span className="text-xs text-violet font-semibold uppercase tracking-widest">Batch Ranking Submission</span>
         </div>
       </div>
+    </div>
+  )
+}
+
+const SUBMISSION_RULES = [
+  { icon: '📄', label: 'Exactly 100 rows', desc: 'Rows 2–101 after header. Use the full candidates.jsonl (100K pool) to guarantee 100 ranked outputs.' },
+  { icon: '🔑', label: 'candidate_id format', desc: 'Must match CAND_XXXXXXX (7 digits, e.g. CAND_0000042). Passed through from your input file.' },
+  { icon: '📉', label: 'Score non-increasing', desc: 'score[rank 1] ≥ score[rank 2] ≥ … ≥ score[rank 100]. Pipeline normalises to 0.20–0.99.' },
+  { icon: '🔤', label: 'Tie-break: ID asc', desc: 'Equal scores → candidate_id ascending (A before B). Pipeline handles this automatically.' },
+  { icon: '🔢', label: 'Ranks 1–100 unique', desc: 'Each integer rank 1–100 must appear exactly once.' },
+]
+
+function SubmissionSpec() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="glass-gradient-border rounded-xl overflow-hidden">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer hover:bg-white/[0.02] transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xs">📋</span>
+          <span className="text-xs text-muted/60 font-medium uppercase tracking-widest">Submission rules (validate_submission.py)</span>
+        </div>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="text-muted/30 text-xs">▾</motion.span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+            transition={{ duration: 0.25 }} className="overflow-hidden"
+          >
+            <div className="px-4 pb-4 space-y-2.5 border-t border-white/[0.05] pt-3">
+              {SUBMISSION_RULES.map(r => (
+                <div key={r.label} className="flex items-start gap-2.5">
+                  <span className="text-sm flex-shrink-0 mt-0.5">{r.icon}</span>
+                  <div>
+                    <span className="text-xs font-semibold text-offwhite/80">{r.label}</span>
+                    <span className="text-xs text-muted/50"> — {r.desc}</span>
+                  </div>
+                </div>
+              ))}
+              <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center gap-2 text-xs text-signal-green/70">
+                <span>✓</span>
+                <span>Pipeline auto-satisfies all rules when input has ≥ 100 candidates</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -132,7 +182,8 @@ function UploadZone({ onFile, onSample, disabled }) {
         <input ref={inputRef} type="file" accept=".jsonl,.json" className="hidden" onChange={handleChange} />
         <div className="text-2xl mb-2">📂</div>
         <p className="text-offwhite/80 text-sm font-medium mb-1">Drop candidates file here</p>
-        <p className="text-muted/50 text-xs">Accepts .jsonl or .json  (hackathon schema)</p>
+        <p className="text-muted/50 text-xs mb-1">Accepts <span className="font-mono-data text-violet/70">candidates.jsonl</span> or <span className="font-mono-data text-violet/70">.json</span> array</p>
+        <p className="text-muted/35 text-xs">Upload candidates.jsonl (100K) for a valid 100-row submission</p>
         {dragOver && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -153,7 +204,7 @@ function UploadZone({ onFile, onSample, disabled }) {
         className="w-full py-2.5 rounded-xl text-sm font-medium text-violet border border-violet/25 bg-violet/[0.06]
           hover:bg-violet/[0.12] transition-colors duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
       >
-        Use 50-candidate sample dataset
+        Use sample dataset (50 candidates · demo only)
       </button>
     </div>
   )
@@ -227,12 +278,12 @@ function PipelineStatus({ status, progress, layersComplete }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm">{layer.icon}</span>
-                  <span className={`text-xs font-medium transition-colors duration-300 ${
-                    isDone || isActive ? 'text-offwhite/90' : 'text-muted/30'
+                  <span className={`text-sm font-medium transition-colors duration-300 ${
+                    isDone || isActive ? 'text-offwhite' : 'text-muted/40'
                   }`}>{layer.label}</span>
                 </div>
                 {(isActive || isDone) && (
-                  <p className="text-[10px] text-muted/45 mt-0.5 truncate">
+                  <p className="text-xs text-muted/65 mt-0.5 truncate">
                     {isActive && progress?.message ? progress.message : layer.desc}
                   </p>
                 )}
@@ -240,8 +291,8 @@ function PipelineStatus({ status, progress, layersComplete }) {
 
               {/* Active progress bar */}
               {isActive && progress?.total > 0 && (
-                <div className="w-20 flex-shrink-0">
-                  <div className="h-1 bg-ink-3/60 rounded-full overflow-hidden">
+                <div className="w-24 flex-shrink-0">
+                  <div className="h-1.5 bg-ink-3/60 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: layer.color }}
@@ -249,7 +300,7 @@ function PipelineStatus({ status, progress, layersComplete }) {
                       transition={{ duration: 0.4 }}
                     />
                   </div>
-                  <p className="text-[9px] text-muted/35 text-right mt-0.5 font-mono-data">
+                  <p className="text-xs text-muted/55 text-right mt-0.5 font-mono-data">
                     {progress.processed.toLocaleString()}
                   </p>
                 </div>
@@ -273,19 +324,19 @@ function FunnelBar({ label, count, maxCount, color, icon, active }) {
   const pct = Math.max(4, Math.round((count / maxCount) * 100))
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm w-5 flex-shrink-0">{icon}</span>
-      <div className="w-28 text-right flex-shrink-0">
-        <span className={`text-xs font-medium ${active ? 'text-offwhite/80' : 'text-muted/30'}`}>{label}</span>
+      <span className="text-base w-5 flex-shrink-0">{icon}</span>
+      <div className="w-32 text-right flex-shrink-0">
+        <span className={`text-sm font-semibold ${active ? 'text-offwhite' : 'text-muted/35'}`}>{label}</span>
       </div>
-      <div className="flex-1 h-6 bg-ink-3/50 rounded-lg overflow-hidden border border-white/[0.04]">
+      <div className="flex-1 h-7 bg-ink-3/50 rounded-lg overflow-hidden border border-white/[0.05]">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: active ? `${pct}%` : 0 }}
           transition={{ duration: 0.6, ease: [0.22,1,0.36,1] }}
-          className="h-full rounded-lg flex items-center px-2"
+          className="h-full rounded-lg flex items-center px-2.5"
           style={{ background: `linear-gradient(90deg, ${color}cc, ${color})` }}
         >
-          <span className="font-mono-data text-xs text-white font-bold whitespace-nowrap">
+          <span className="font-mono-data text-sm text-white font-bold whitespace-nowrap">
             {count.toLocaleString()}
           </span>
         </motion.div>
@@ -296,6 +347,7 @@ function FunnelBar({ label, count, maxCount, color, icon, active }) {
 
 function ResultsTable({ results, jobId }) {
   const [expanded, setExpanded] = useState(null)
+  const isValidSubmission = results.length === 100
 
   const handleDownload = async () => {
     const res = await fetch(`${API}/download/${jobId}`)
@@ -313,8 +365,17 @@ function ResultsTable({ results, jobId }) {
       {/* Header */}
       <div className="px-5 py-4 flex items-center justify-between border-b border-white/[0.05]">
         <div>
-          <h3 className="text-offwhite font-display font-bold text-base">Top 100 Candidates</h3>
-          <p className="text-muted/50 text-xs mt-0.5">Ranked by 7-layer composite score</p>
+          <div className="flex items-center gap-2.5 mb-0.5">
+            <h3 className="text-offwhite font-display font-bold text-lg">
+              Top {results.length} Candidates
+            </h3>
+            {isValidSubmission && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-signal-green/10 border border-signal-green/25 text-signal-green text-xs font-semibold">
+                ✓ Valid submission
+              </span>
+            )}
+          </div>
+          <p className="text-muted/60 text-sm">Ranked by 7-layer composite score · CSV: candidate_id, rank, score, reasoning</p>
         </div>
         <button
           onClick={handleDownload}
@@ -332,7 +393,7 @@ function ResultsTable({ results, jobId }) {
       {/* Column headers */}
       <div className="grid grid-cols-[3rem_1fr_5rem_5rem_6rem] gap-3 px-5 py-2 border-b border-white/[0.04]">
         {['Rank', 'Candidate', 'Score', 'Skills', 'Signals'].map(h => (
-          <span key={h} className="text-[10px] text-muted/40 uppercase tracking-widest font-medium">{h}</span>
+          <span key={h} className="text-sm text-muted/75 uppercase tracking-widest font-semibold">{h}</span>
         ))}
       </div>
 
@@ -362,21 +423,21 @@ function ResultsTable({ results, jobId }) {
                 {/* Candidate info */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-offwhite/90 text-xs font-semibold font-mono-data truncate">{r.candidate_id}</span>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold border whitespace-nowrap"
+                    <span className="text-offwhite text-base font-semibold font-mono-data truncate">{r.candidate_id}</span>
+                    <span className="px-2 py-0.5 rounded text-xs font-semibold border whitespace-nowrap"
                       style={{ background: tier.bg, borderColor: tier.border, color: tier.fg }}>
                       {tier.text}
                     </span>
                   </div>
-                  <p className="text-muted/55 text-[11px] truncate">{r.title} · {r.location}</p>
+                  <p className="text-muted/70 text-sm truncate">{r.title} · {r.location}</p>
                 </div>
 
                 {/* Score */}
                 <div className="text-right">
-                  <span className="font-mono-data text-sm font-bold" style={{ color: scoreColor(r.score) }}>
+                  <span className="font-mono-data text-lg font-bold" style={{ color: scoreColor(r.score) }}>
                     {r.score.toFixed(3)}
                   </span>
-                  <p className="text-muted/40 text-[10px]">{r.years_of_experience?.toFixed(1)} yrs</p>
+                  <p className="text-muted/60 text-sm">{r.years_of_experience?.toFixed(1)} yrs</p>
                 </div>
 
                 {/* Skills match */}
@@ -385,7 +446,7 @@ function ResultsTable({ results, jobId }) {
                     <div className="h-full rounded-full bg-violet"
                       style={{ width: `${r.subscores?.skills_match ?? 0}%` }} />
                   </div>
-                  <p className="text-[10px] text-muted/45 text-right">{r.subscores?.skills_match?.toFixed(0)}/100</p>
+                  <p className="text-xs text-muted/55 text-right">{r.subscores?.skills_match?.toFixed(0)}/100</p>
                 </div>
 
                 {/* Signals */}
@@ -394,7 +455,7 @@ function ResultsTable({ results, jobId }) {
                     <span title="Open to work" className="text-signal-green text-xs">●</span>
                   )}
                   {r.github_score >= 0 && (
-                    <span className="text-[10px] text-muted/50 font-mono-data">gh:{r.github_score?.toFixed(0)}</span>
+                    <span className="text-xs text-muted/60 font-mono-data">gh:{r.github_score?.toFixed(0)}</span>
                   )}
                   <motion.span
                     animate={{ rotate: isOpen ? 180 : 0 }}
@@ -418,41 +479,41 @@ function ResultsTable({ results, jobId }) {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                         {Object.entries(r.subscores ?? {}).map(([key, val]) => (
                           <div key={key} className="bg-ink-3/40 rounded-xl p-2.5 border border-white/[0.04]">
-                            <p className="text-[10px] text-muted/45 capitalize mb-1">
+                            <p className="text-xs text-muted/55 capitalize mb-1">
                               {key.replace(/_/g, ' ')}
                             </p>
                             <div className="h-1 bg-ink-3/80 rounded-full overflow-hidden mb-1">
                               <div className="h-full rounded-full bg-violet"
                                 style={{ width: `${val}%` }} />
                             </div>
-                            <p className="text-xs text-offwhite/80 font-mono-data text-right">{val}/100</p>
+                            <p className="text-sm text-offwhite/80 font-mono-data text-right">{val}/100</p>
                           </div>
                         ))}
                         <div className="bg-ink-3/40 rounded-xl p-2.5 border border-white/[0.04]">
-                          <p className="text-[10px] text-muted/45 mb-1">Graph Fit</p>
+                          <p className="text-xs text-muted/55 mb-1">Graph Fit</p>
                           <div className="h-1 bg-ink-3/80 rounded-full overflow-hidden mb-1">
                             <div className="h-full rounded-full bg-sky-400"
                               style={{ width: `${r.graph_fit}%` }} />
                           </div>
-                          <p className="text-xs text-offwhite/80 font-mono-data text-right">{r.graph_fit}/100</p>
+                          <p className="text-sm text-offwhite/80 font-mono-data text-right">{r.graph_fit}/100</p>
                         </div>
                         <div className="bg-ink-3/40 rounded-xl p-2.5 border border-white/[0.04]">
-                          <p className="text-[10px] text-muted/45 mb-1">Skill Breadth</p>
+                          <p className="text-xs text-muted/55 mb-1">Skill Breadth</p>
                           <div className="h-1 bg-ink-3/80 rounded-full overflow-hidden mb-1">
                             <div className="h-full rounded-full bg-pink-400"
                               style={{ width: `${r.skill_breadth}%` }} />
                           </div>
-                          <p className="text-xs text-offwhite/80 font-mono-data text-right">{r.skill_breadth}/100</p>
+                          <p className="text-sm text-offwhite/80 font-mono-data text-right">{r.skill_breadth}/100</p>
                         </div>
                       </div>
 
                       {/* Top skills */}
                       {r.top_skills?.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-1.5">Top Skills</p>
+                          <p className="text-xs text-muted/55 uppercase tracking-widest mb-1.5">Top Skills</p>
                           <div className="flex flex-wrap gap-1.5">
                             {r.top_skills.map(s => (
-                              <span key={s} className="px-2 py-0.5 rounded-md text-[11px] font-medium
+                              <span key={s} className="px-2 py-0.5 rounded-md text-xs font-medium
                                 bg-violet/[0.08] border border-violet/20 text-violet/90">{s}</span>
                             ))}
                           </div>
@@ -462,10 +523,10 @@ function ResultsTable({ results, jobId }) {
                       {/* L6 notes */}
                       {r.l6_notes?.length > 0 && (
                         <div className="mb-3">
-                          <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-1.5">Debate Notes</p>
+                          <p className="text-xs text-muted/55 uppercase tracking-widest mb-1.5">Debate Notes</p>
                           <div className="space-y-1">
                             {r.l6_notes.map((n, i) => (
-                              <p key={i} className={`text-xs ${n.startsWith('advocate') ? 'text-signal-green/70' : 'text-red-400/70'}`}>
+                              <p key={i} className={`text-sm ${n.startsWith('advocate') ? 'text-signal-green/70' : 'text-red-400/70'}`}>
                                 {n.startsWith('advocate') ? '+ ' : '− '}{n}
                               </p>
                             ))}
@@ -475,16 +536,16 @@ function ResultsTable({ results, jobId }) {
 
                       {/* Reasoning */}
                       <div className="bg-ink-3/40 rounded-xl p-3 border border-white/[0.04]">
-                        <p className="text-[10px] text-muted/40 uppercase tracking-widest mb-1">Submission Reasoning</p>
-                        <p className="text-xs text-offwhite/75 leading-relaxed">{r.reasoning}</p>
+                        <p className="text-xs text-muted/55 uppercase tracking-widest mb-1">Submission Reasoning</p>
+                        <p className="text-sm text-offwhite/80 leading-relaxed">{r.reasoning}</p>
                       </div>
 
                       {/* Signals strip */}
-                      <div className="flex items-center gap-4 mt-3 text-[10px] text-muted/45">
-                        <span>Response rate: <span className="text-offwhite/60 font-mono-data">{(r.response_rate * 100).toFixed(0)}%</span></span>
-                        <span>Notice: <span className="text-offwhite/60 font-mono-data">{r.notice_days}d</span></span>
+                      <div className="flex items-center gap-4 mt-3 text-xs text-muted/55">
+                        <span>Response rate: <span className="text-offwhite/65 font-mono-data">{(r.response_rate * 100).toFixed(0)}%</span></span>
+                        <span>Notice: <span className="text-offwhite/65 font-mono-data">{r.notice_days}d</span></span>
                         {r.github_score >= 0 && (
-                          <span>GitHub: <span className="text-offwhite/60 font-mono-data">{r.github_score}/100</span></span>
+                          <span>GitHub: <span className="text-offwhite/65 font-mono-data">{r.github_score}/100</span></span>
                         )}
                         <span>L6 adj: <span className={`font-mono-data ${r.l6_adj >= 0 ? 'text-signal-green/70' : 'text-red-400/70'}`}>
                           {r.l6_adj >= 0 ? '+' : ''}{r.l6_adj}
@@ -547,7 +608,11 @@ export default function HackathonPage() {
         }
       } catch (e) {
         stopPolling()
-        setErrorMsg(e.message)
+        setErrorMsg(
+          e.message === 'Failed to fetch' || e.name === 'TypeError'
+            ? 'Cannot reach backend — start the server: uvicorn app.main:app --port 8000'
+            : e.message
+        )
         setMode('error')
       }
     }, 1000)
@@ -582,7 +647,11 @@ export default function HackathonPage() {
       setJobId(data.job_id)
       startPolling(data.job_id)
     } catch (e) {
-      setErrorMsg(e.message)
+      setErrorMsg(
+        e.message === 'Failed to fetch' || e.name === 'TypeError'
+          ? 'Cannot reach backend — start the server: uvicorn app.main:app --port 8000'
+          : e.message
+      )
       setMode('error')
     }
   }
@@ -618,10 +687,10 @@ export default function HackathonPage() {
             </div>
             <div>
               <h1 className="font-display font-bold text-offwhite text-xl tracking-tight">
-                Hackathon Submission Mode
+                Batch Ranking Pipeline
               </h1>
-              <p className="text-muted/50 text-xs">
-                India Runs Data &amp; AI Challenge · Redrob AI · 7-Layer Offline Pipeline
+              <p className="text-muted/60 text-sm">
+                Bulk Dataset Scoring · Redrob AI · 7-Layer Offline Pipeline
               </p>
             </div>
           </div>
@@ -635,8 +704,8 @@ export default function HackathonPage() {
               { icon: '📦', label: '< 16 GB RAM' },
               { icon: '📴', label: 'No network during ranking' },
             ].map(({ icon, label }) => (
-              <span key={label} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                bg-ink-3/60 border border-white/[0.07] text-xs text-muted/60">
+              <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                bg-ink-3/60 border border-white/[0.10] text-sm text-muted/80 font-medium">
                 <span>{icon}</span><span>{label}</span>
               </span>
             ))}
@@ -677,6 +746,7 @@ export default function HackathonPage() {
                     onSample={() => runPipeline(true)}
                     disabled={mode !== 'idle'}
                   />
+                  <SubmissionSpec />
                   {selectedFile && (
                     <motion.div
                       initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
@@ -687,7 +757,7 @@ export default function HackathonPage() {
                         <span className="text-base">📄</span>
                         <div>
                           <p className="text-xs text-offwhite/80 font-medium">{selectedFile.name}</p>
-                          <p className="text-[10px] text-muted/45">
+                          <p className="text-xs text-muted/55">
                             {(selectedFile.size / 1024 / 1024).toFixed(1)} MB
                           </p>
                         </div>
@@ -753,8 +823,8 @@ export default function HackathonPage() {
             >
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="font-display font-bold text-offwhite text-base">Pipeline Funnel</h3>
-                  <p className="text-muted/45 text-xs">
+                  <h3 className="font-display font-bold text-offwhite text-lg">Pipeline Funnel</h3>
+                  <p className="text-muted/55 text-sm">
                     {funnelData[0]?.count?.toLocaleString()} candidates →{' '}
                     {funnelData[funnelData.length - 1]?.count?.toLocaleString()} ranked
                   </p>
@@ -763,7 +833,7 @@ export default function HackathonPage() {
                   rounded-full px-3 py-1.5">
                   <motion.div animate={{ scale:[1,1.4,1] }} transition={{ duration:2, repeat:Infinity }}
                     className="w-1.5 h-1.5 rounded-full bg-signal-green" />
-                  <span className="text-signal-green text-xs font-semibold">Fairness checked</span>
+                  <span className="text-signal-green text-sm font-semibold">Fairness checked</span>
                 </div>
               </div>
               <div className="space-y-2.5">
