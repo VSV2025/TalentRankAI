@@ -14,7 +14,7 @@ function friendlyError(msg) {
   if (!msg) return 'Something went wrong.'
   const m = msg.toLowerCase()
   if (m.includes('failed to fetch') || m.includes('networkerror') || m.includes('econnrefused') || m.includes('network request failed')) {
-    return 'Cannot reach the backend server. Make sure it is running on port 8000.'
+    return 'Cannot reach the backend. It may be waking from sleep — please wait 30–60 seconds and try again.'
   }
   if (m.includes('no candidates')) return 'No candidates in the database. Add candidates first.'
   if (m.includes('job not found')) return 'Job not found. Ensure Job #1 exists in the database.'
@@ -346,6 +346,7 @@ export default function RecruiterDashboard({ onLock }) {
   const [pipelineLayer, setPipelineLayer] = useState('Starting pipeline…')
   const [pipelineProgress, setPipelineProgress] = useState(0)
   const [backendOnline, setBackendOnline] = useState(null)
+  const [backendWaking, setBackendWaking] = useState(false)
   const [jdExpanded, setJdExpanded]       = useState(false)
   const [lastRankedIds, setLastRankedIds] = useState(new Set())
   const [isRefreshingManifest, setIsRefreshingManifest] = useState(false)
@@ -365,10 +366,16 @@ export default function RecruiterDashboard({ onLock }) {
 
   useEffect(() => {
     async function loadInitial() {
+      // Show "waking up" message if health check takes more than 3s (Render cold start)
+      const wakingTimer = setTimeout(() => setBackendWaking(true), 3000)
       try {
         await api.health()
+        clearTimeout(wakingTimer)
+        setBackendWaking(false)
         setBackendOnline(true)
       } catch {
+        clearTimeout(wakingTimer)
+        setBackendWaking(false)
         setBackendOnline(false)
         setLoading(false)
         return
@@ -526,22 +533,48 @@ export default function RecruiterDashboard({ onLock }) {
           </div>
         </motion.div>
 
-        {/* Backend offline banner */}
+        {/* Backend waking / offline banner */}
         <AnimatePresence>
-          {backendOnline === false && (
+          {(backendWaking || backendOnline === false) && (
             <motion.div initial={{ opacity: 0, y: -8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -8, height: 0 }} transition={{ duration: 0.3 }} className="mb-4 overflow-hidden">
               <div className="flex items-center gap-3 rounded-xl px-4 py-3"
                 style={{ background: 'rgba(245,166,35,0.08)', border: '1px solid rgba(245,166,35,0.22)' }}>
-                <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                </svg>
+                {backendWaking ? (
+                  <svg className="w-4 h-4 text-yellow-400 flex-shrink-0 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>
+                )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-yellow-400">Backend server is offline</p>
-                  <p className="text-[11px] text-yellow-400/70 mt-0.5">
-                    Start it with: <span className="font-mono-data text-yellow-300">uvicorn app.main:app --reload --port 8000</span>
-                  </p>
+                  {backendWaking ? (
+                    <>
+                      <p className="text-xs font-semibold text-yellow-400">Backend is waking up...</p>
+                      <p className="text-[11px] text-yellow-400/70 mt-0.5">
+                        Render free tier takes 30–60 seconds on first request. Please wait.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-semibold text-yellow-400">Backend unreachable</p>
+                      <p className="text-[11px] text-yellow-400/70 mt-0.5">
+                        The server may still be starting up. Try again in a moment.
+                      </p>
+                    </>
+                  )}
                 </div>
+                {backendOnline === false && (
+                  <button
+                    onClick={() => { setBackendOnline(null); window.location.reload() }}
+                    className="text-xs text-yellow-400 hover:text-yellow-300 font-semibold px-2 py-1 rounded-lg cursor-pointer flex-shrink-0"
+                    style={{ background: 'rgba(245,166,35,0.12)', border: '1px solid rgba(245,166,35,0.25)' }}
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
             </motion.div>
           )}
