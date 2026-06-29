@@ -621,15 +621,6 @@ export default function HackathonPage() {
   useEffect(() => () => stopPolling(), [])
 
   const runPipeline = async (useSample = false) => {
-    if (!useSample && selectedFile && selectedFile.size > 50 * 1024 * 1024) {
-      setErrorMsg(
-        `File is ${(selectedFile.size / (1024 * 1024)).toFixed(0)} MB — the cloud tier limit is 50 MB. ` +
-        'Run rank.py locally and upload the resulting submission.csv instead.'
-      )
-      setMode('error')
-      return
-    }
-
     setMode('running')
     setResults(null)
     setLayersDone([])
@@ -768,6 +759,9 @@ export default function HackathonPage() {
                           <p className="text-xs text-offwhite/80 font-medium">{selectedFile.name}</p>
                           <p className="text-xs text-muted/55">
                             {(selectedFile.size / 1024 / 1024).toFixed(1)} MB
+                            {selectedFile.size > 100 * 1024 * 1024 && (
+                              <span className="ml-1 text-amber-400/70"> · large file, upload may take a few minutes</span>
+                            )}
                           </p>
                         </div>
                       </div>
