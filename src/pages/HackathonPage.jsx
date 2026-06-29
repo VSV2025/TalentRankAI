@@ -610,7 +610,7 @@ export default function HackathonPage() {
         stopPolling()
         setErrorMsg(
           e.message === 'Failed to fetch' || e.name === 'TypeError'
-            ? 'Cannot reach backend — start the server: uvicorn app.main:app --port 8000'
+            ? 'Cannot reach backend — the service may be starting up, please wait 30s and try again.'
             : e.message
         )
         setMode('error')
@@ -621,6 +621,15 @@ export default function HackathonPage() {
   useEffect(() => () => stopPolling(), [])
 
   const runPipeline = async (useSample = false) => {
+    if (!useSample && selectedFile && selectedFile.size > 50 * 1024 * 1024) {
+      setErrorMsg(
+        `File is ${(selectedFile.size / (1024 * 1024)).toFixed(0)} MB — the cloud tier limit is 50 MB. ` +
+        'Run rank.py locally and upload the resulting submission.csv instead.'
+      )
+      setMode('error')
+      return
+    }
+
     setMode('running')
     setResults(null)
     setLayersDone([])
@@ -649,7 +658,7 @@ export default function HackathonPage() {
     } catch (e) {
       setErrorMsg(
         e.message === 'Failed to fetch' || e.name === 'TypeError'
-          ? 'Cannot reach backend — start the server: uvicorn app.main:app --port 8000'
+          ? 'Cannot reach backend — the service may be starting up, please wait 30s and try again.'
           : e.message
       )
       setMode('error')
