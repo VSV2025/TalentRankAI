@@ -565,8 +565,10 @@ function ResultsTable({ results, jobId }) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 
+const CHUNK_SIZE = 4 * 1024 * 1024  // 4 MB per chunk — well under Render's 30s timeout
+
 export default function HackathonPage() {
-  const [mode, setMode]             = useState('idle')   // idle | running | complete | error
+  const [mode, setMode]             = useState('idle')   // idle | uploading | running | complete | error
   const [jobId, setJobId]           = useState(null)
   const [progress, setProgress]     = useState(null)
   const [layersDone, setLayersDone] = useState([])
@@ -574,6 +576,7 @@ export default function HackathonPage() {
   const [funnelData, setFunnelData] = useState([])
   const [errorMsg, setErrorMsg]     = useState('')
   const [selectedFile, setSelectedFile] = useState(null)
+  const [uploadPct, setUploadPct]   = useState(0)   // 0-100 during chunked upload
   const pollRef = useRef(null)
 
   const stopPolling = () => {
@@ -588,14 +591,12 @@ export default function HackathonPage() {
         const data = await res.json()
         setProgress(data.progress)
 
-        // Track which layers are complete
         const currentIdx = LAYERS.findIndex(l => l.id === data.progress?.current_layer)
         setLayersDone(LAYERS.slice(0, currentIdx).map(l => l.id))
 
         if (data.status === 'complete') {
           stopPolling()
           setLayersDone(LAYERS.map(l => l.id))
-          // Fetch results
           const rRes = await fetch(`${API}/results/${jid}`)
           const rData = await rRes.json()
           setResults(rData.results)
@@ -620,30 +621,61 @@ export default function HackathonPage() {
 
   useEffect(() => () => stopPolling(), [])
 
+  // Chunked upload — splits file into 4 MB pieces to avoid Render's 30s timeout
+  const uploadFileChunked = async (file) => {
+    const uploadId = Math.random().toString(36).substr(2, 10)
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+    setUploadPct(0)
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE
+      const end = Math.min(start + CHUNK_SIZE, file.size)
+      const chunkBlob = file.slice(start, end)
+
+      const fd = new FormData()
+      fd.append('upload_id', uploadId)
+      fd.append('chunk_index', String(i))
+      fd.append('chunk', new File([chunkBlob], `chunk_${i}.part`))
+
+      const res = await fetch(`${API}/upload-chunk`, { method: 'POST', body: fd })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail ?? `Chunk ${i + 1}/${totalChunks} failed`)
+      }
+      setUploadPct(Math.round(((i + 1) / totalChunks) * 100))
+    }
+
+    // Finalize — assemble chunks and start pipeline
+    const res = await fetch(`${API}/finalize/${uploadId}?total_chunks=${totalChunks}`, { method: 'POST' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      throw new Error(err.detail ?? 'Finalize failed')
+    }
+    return res.json()   // { job_id, total_candidates, status }
+  }
+
   const runPipeline = async (useSample = false) => {
-    setMode('running')
     setResults(null)
     setLayersDone([])
     setProgress(null)
     setErrorMsg('')
+    setUploadPct(0)
 
     try {
-      let res
+      let data
       if (useSample || !selectedFile) {
+        setMode('running')
         const fd = new FormData()
         fd.append('use_sample', 'true')
-        res = await fetch(`${API}/rank`, { method: 'POST', body: fd })
+        const res = await fetch(`${API}/rank`, { method: 'POST', body: fd })
+        if (!res.ok) { const e = await res.json(); throw new Error(e.detail ?? 'Server error') }
+        data = await res.json()
       } else {
-        const fd = new FormData()
-        fd.append('file', selectedFile)
-        res = await fetch(`${API}/rank`, { method: 'POST', body: fd })
+        // Use chunked upload for any file
+        setMode('uploading')
+        data = await uploadFileChunked(selectedFile)
+        setMode('running')
       }
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail ?? 'Server error')
-      }
-      const data = await res.json()
       setJobId(data.job_id)
       startPolling(data.job_id)
     } catch (e) {
@@ -666,6 +698,7 @@ export default function HackathonPage() {
     setLayersDone([])
     setErrorMsg('')
     setSelectedFile(null)
+    setUploadPct(0)
   }
 
   const funnelMax = funnelData[0]?.count ?? 1
@@ -778,9 +811,40 @@ export default function HackathonPage() {
               )}
             </AnimatePresence>
 
+            {/* Upload progress bar — shown during chunked upload */}
+            <AnimatePresence>
+              {mode === 'uploading' && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                  className="glass-gradient-border rounded-2xl p-5"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 rounded-full border-2 border-violet border-t-transparent"
+                    />
+                    <span className="text-sm font-semibold text-offwhite/80">
+                      Uploading file… {uploadPct}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-white/[0.07] overflow-hidden">
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-violet to-blue-400"
+                      style={{ width: `${uploadPct}%` }}
+                      transition={{ duration: 0.3 }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-muted/50">
+                    Sending in 4 MB chunks — each under Render&apos;s 30s limit
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Pipeline status */}
             <PipelineStatus
-              status={mode === 'idle' ? 'idle' : mode === 'error' ? 'error' : mode}
+              status={mode === 'idle' ? 'idle' : mode === 'uploading' ? 'idle' : mode === 'error' ? 'error' : mode}
               progress={progress}
               layersComplete={layersDone}
             />
